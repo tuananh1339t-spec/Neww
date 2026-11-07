@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shadowrocket VIP PRO Studio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg-dark: #050810;
+            --bg-panel: rgba(15, 23, 42, 0.85);
+            --bg-sidebar: rgba(10, 15, 30, 0.95);
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ea;
+            --neon-purple: #9d00ff;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --border-color: rgba(0, 243, 255, 0.25);
+            --glow-blue: 0 0 15px rgba(0, 243, 255, 0.3);
+            --glow-pink: 0 0 15px rgba(255, 0, 234, 0.3);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            /* Sửa lỗi cuộn: Cho phép body cuộn tự do */
+            overflow-y: auto;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 243, 255, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(255, 0, 234, 0.08), transparent 25%);
+            background-attachment: fixed;
+        }
+
+        /* Khung ứng dụng: Bỏ chiều cao cố định, dùng min-height */
+        .app-container {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+            max-width: 1600px;
+            margin: 0 auto;
+            background: var(--bg-panel);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        /* ================= SIDEBAR ================= */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column;
+            position: sticky; top: 0; height: 100vh; /* Sidebar đứng yên khi cuộn */
+            flex-shrink: 0;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo { padding: 25px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .logo h1 {
+            font-family: 'Orbitron', sans-serif; font-size: 20px; letter-spacing: 1px;
+            color: #fff; text-shadow: var(--glow-blue); line-height: 1.2;
+        }
+        .logo h1 span { color: var(--neon-pink); text-shadow: var(--glow-pink); font-size: 13px; display: block; margin-top: 5px; letter-spacing: 2px;}
+
+        .nav-item {
+            padding: 18px 25px; cursor: pointer; color: var(--text-muted);
+            font-size: 14px; display: flex; align-items: center; gap: 15px;
+            border-left: 3px solid transparent; transition: all 0.3s ease;
+            position: relative; overflow: hidden;
+        }
+        .nav-item:hover { background: rgba(0, 243, 255, 0.05); color: #fff; }
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(0, 243, 255, 0.1) 0%, transparent 100%);
+            color: var(--neon-blue); border-left-color: var(--neon-blue);
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+        .nav-item.active::after {
+            content: ''; position: absolute; right: 0; top: 0; height: 100%; width: 2px;
+            background: var(--neon-blue); box-shadow: var(--glow-blue);
+        }
+
+        .sidebar-footer {
+            margin-top: auto; padding: 20px; font-size: 11px; color: var(--text-muted); text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* ================= MAIN CONTENT ================= */
+        .main-content {
+            flex: 1; display: flex; flex-direction: column;
+            min-width: 0; /* Ngăn chặn tràn layout */
+        }
+
+        /* Top Header */
+        .top-header {
+            padding: 20px 30px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(5, 8, 16, 0.8);
+            position: sticky; top: 0; z-index: 5; backdrop-filter: blur(10px);
+        }
+        .top-header h2 { font-family: 'Orbitron', sans-serif; font-size: 18px; color: #fff; }
+        
+        .btn-export {
+            padding: 10px 20px; background: transparent; color: var(--neon-blue);
+            border: 1px solid var(--neon-blue); border-radius: 6px;
+            font-family: 'Orbitron', sans-serif; font-weight: bold; font-size: 13px;
+            cursor: pointer; text-transform: uppercase; box-shadow: inset 0 0 10px rgba(0,243,255,0.1);
+            transition: all 0.3s ease;
+        }
+        .btn-export:hover, .btn-export:active { background: var(--neon-blue); color: #000; box-shadow: var(--glow-blue); }
+
+        /* Vùng nội dung chính */
+        .content-scroll { padding: 30px; flex: 1; }
+
+        .tab-pane { display: none; animation: fadeIn 0.4s ease-out; }
+        .tab-pane.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ================= WIDGETS & GRIDS ================= */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        
+        .panel {
+            background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(0, 243, 255, 0.15);
+            border-radius: 12px; padding: 25px; position: relative;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            backdrop-filter: blur(5px);
+        }
+        .panel-title {
+            font-family: 'Orbitron', sans-serif; font-size: 14px; color: var(--neon-blue);
+            margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;
+            text-shadow: 0 0 8px var(--neon-blue); border-bottom: 1px solid rgba(0, 243, 255, 0.1); padding-bottom: 10px;
+        }
+
+        /* Gauges */
+        .gauge-row { display: flex; justify-content: space-around; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+        .gauge {
+            width: 110px; height: 110px; border-radius: 50%; position: relative;
+            display: flex; justify-content: center; align-items: center;
+            background: conic-gradient(var(--neon-blue) 0%, var(--neon-pink) 100%);
+            box-shadow: 0 0 20px rgba(0,243,255,0.2);
+        }
+        .gauge::before { content: ''; position: absolute; inset: 6px; background: var(--bg-dark); border-radius: 50%; z-index: 1; }
+        .gauge-content { z-index: 2; text-align: center; font-family: 'Orbitron', sans-serif; }
+        .gauge-content h3 { font-size: 24px; color: #fff; text-shadow: var(--glow-blue); }
+        .gauge-content span { font-size: 10px; color: var(--neon-blue); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Forms */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 11px; color: var(--neon-blue); margin-bottom: 6px; letter-spacing: 1px; }
+        input, select, textarea {
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(0, 243, 255, 0.2); border-radius: 6px;
+            color: #fff; font-family: 'Share Tech Mono', monospace; outline: none; transition: 0.3s;
+            font-size: 14px;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--neon-pink); box-shadow: 0 0 10px rgba(255, 0, 234, 0.2); }
+
+        .btn {
+            padding: 12px 20px; background: rgba(0,243,255,0.05); color: var(--neon-blue);
+            border: 1px solid var(--neon-blue); border-radius: 6px;
+            font-family: 'Orbitron', sans-serif; font-weight: bold; cursor: pointer; transition: 0.3s;
+            text-align: center;
+        }
+        .btn:hover, .btn:active { background: var(--neon-blue); color: #000; box-shadow: var(--glow-blue); }
+        .btn-accent { color: var(--neon-pink); border-color: var(--neon-pink); background: rgba(255,0,234,0.05); }
+        .btn-accent:hover, .btn-accent:active { background: var(--neon-pink); color: #000; box-shadow: var(--glow-pink); }
+
+        /* Game Grid */
+        .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
+        .game-card {
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(157, 0, 255, 0.3);
+            border-radius: 8px; padding: 15px; cursor: pointer; transition: 0.3s; text-align: center;
+        }
+        .game-card:hover { border-color: var(--neon-pink); transform: translateY(-2px); }
+        .game-card.selected { border-color: var(--neon-pink); box-shadow: inset 0 0 15px rgba(255, 0, 234, 0.15); background: rgba(255, 0, 234, 0.05); }
+        .game-card h4 { color: #fff; font-family: 'Orbitron', sans-serif; font-size: 14px; margin-bottom: 5px; }
+        .game-card .status { font-size: 10px; color: var(--text-muted); }
+        .game-card.selected .status { color: var(--neon-pink); text-shadow: 0 0 5px var(--neon-pink); }
+
+        /* Toggles */
+        .toggle-group { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+        .toggle-group span { font-size: 13px; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #1e293b; transition: .4s; border-radius: 20px; border: 1px solid var(--text-muted); }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 2px; bottom: 2px; background-color: var(--text-muted); transition: .4s; border-radius: 50%; }
+        input:checked + .slider { border-color: var(--neon-blue); background-color: rgba(0, 243, 255, 0.2); }
+        input:checked + .slider:before { transform: translateX(20px); background-color: var(--neon-blue); box-shadow: var(--glow-blue); }
+
+        /* Table */
+        .table-container { overflow-x: auto; width: 100%; }
+        table { width: 100%; border-collapse: collapse; text-align: left; min-width: 400px; }
+        th, td { padding: 12px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        th { color: var(--neon-blue); font-size: 11px; text-transform: uppercase; }
+        tr:hover { background: rgba(0, 243, 255, 0.05); }
+        .tag { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; background: var(--bg-sidebar); border: 1px solid var(--neon-blue); color: var(--neon-blue); }
+        
+        /* Editor */
+        .editor-container { border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 500px; background: #000; }
+        .editor-header { background: rgba(0,243,255,0.05); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+        .editor-body { display: flex; flex: 1; overflow: hidden; position: relative; }
+        .line-numbers { width: 40px; background: #080808; color: #444; text-align: right; padding: 10px 5px; font-family: monospace; font-size: 13px; line-height: 1.5; user-select: none; overflow: hidden; }
+        textarea.code-editor { flex: 1; background: #000; color: var(--success); padding: 10px; font-family: 'Share Tech Mono', monospace; font-size: 13px; line-height: 1.5; border: none; resize: none; outline: none; white-space: pre; overflow: auto; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); padding: 20px; }
+        .modal-content { background: var(--bg-panel); padding: 25px; border-radius: 12px; width: 100%; max-width: 400px; border: 1px solid var(--neon-blue); box-shadow: var(--glow-blue); }
+        .modal-content h3 { margin-bottom: 20px; color: var(--neon-blue); font-family: 'Orbitron', sans-serif; }
+        
+        .toast { position: fixed; top: 20px; right: 20px; background: rgba(0, 243, 255, 0.1); color: var(--neon-blue); padding: 15px 25px; border-radius: 6px; border: 1px solid var(--neon-blue); box-shadow: var(--glow-blue); font-family: 'Orbitron', sans-serif; opacity: 0; transition: opacity 0.3s; z-index: 2000; pointer-events: none; }
+        .toast.show { opacity: 1; }
+
+        /* ================= RESPONSIVE MOBILE ================= */
+        @media (max-width: 992px) {
+            .app-container { flex-direction: column; }
+            
+            /* Sidebar chuyển thành thanh ngang cuộn được */
+            .sidebar { 
+                width: 100%; height: auto; position: relative; 
+                flex-direction: row; overflow-x: auto; padding: 10px; 
+                border-right: none; border-bottom: 1px solid var(--border-color);
+            }
+            .logo { display: none; }
+            .sidebar-footer { display: none; }
+            .nav-item { 
+                padding: 10px 15px; border-left: none; border-bottom: 2px solid transparent; 
+                white-space: nowrap; font-size: 13px;
+            }
+            .nav-item.active { border-left: none; border-bottom-color: var(--neon-blue); background: none; }
+            .nav-item.active::after { display: none; }
+
+            /* Grid chuyển thành 1 cột */
+            .grid-2 { grid-template-columns: 1fr; gap: 15px; }
+            
+            .top-header { padding: 15px 20px; }
+            .top-header h2 { font-size: 16px; }
+            .btn-export { padding: 8px 12px; font-size: 11px; }
+            
+            .content-scroll { padding: 15px; }
+            .panel { padding: 15px; }
+            .gauge { width: 90px; height: 90px; }
+            .gauge-content h3 { font-size: 20px; }
+            
+            .editor-container { height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="logo">
+            <h1>⚡ SHADOWROCKET<br><span>VIP PRO STUDIO</span></h1>
+        </div>
+        <div class="nav-item active" onclick="switchTab(0, this)">🎯 Tối Ưu Game</div>
+        <div class="nav-item" onclick="switchTab(1, this)">🌐 Quản Lý Proxy</div>
+        <div class="nav-item" onclick="switchTab(2, this)">⚙️ Cấu Hình Nâng Cao</div>
+        <div class="nav-item" onclick="switchTab(3, this)">📚 Mẫu Code</div>
+        <div class="nav-item" onclick="switchTab(4, this)">💻 Trình Soạn Code</div>
+        <div class="sidebar-footer">Status: Online<br>v2.5.0-VIP</div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <div class="top-header">
+            <h2 id="page-title">GAME OPTIMIZATION</h2>
+            <button class="btn-export" onclick="generateAndEditConfig()">Tạo Cấu Hình</button>
+        </div>
+
+        <div class="content-scroll">
+            
+            <!-- PANE 0: GAME OPTIMIZER -->
+            <div class="tab-pane active" id="pane-0">
+                <div class="gauge-row">
+                    <div class="gauge"><div class="gauge-content"><h3 id="gaugeNodes">0</h3><span>Nodes</span></div></div>
+                    <div class="gauge"><div class="gauge-content"><h3 id="gaugeGames">0</h3><span>Games</span></div></div>
+                    <div class="gauge"><div class="gauge-content"><h3 id="gaugePing">--</h3><span>Ping (ms)</span></div></div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">CHỌN GAME TỐI ƯU</div>
+                    <div class="game-grid" id="gameGrid"></div>
+                </div>
+
+                <div class="panel" style="margin-top: 25px;">
+                    <div class="panel-title">TINH CHỈNH MẠNG LƯỚI</div>
+                    <div class="grid-2">
+                        <div>
+                            <div class="toggle-group"><span>Bật UDP Relay (Giảm Ping)</span><label class="switch"><input type="checkbox" id="gUdp" checked><span class="slider"></span></label></div>
+                            <div class="toggle-group"><span>TCP Fast Open (Tăng Tốc)</span><label class="switch"><input type="checkbox" id="gTfo" checked><span class="slider"></span></label></div>
+                        </div>
+                        <div>
+                            <div class="toggle-group"><span>Direct Route (Bỏ qua Proxy)</span><label class="switch"><input type="checkbox" id="gDirect" checked><span class="slider"></span></label></div>
+                            <div class="toggle-group"><span>Chặn Quảng Cáo SDK Game</span><label class="switch"><input type="checkbox" id="gAdSdk" checked><span class="slider"></span></label></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE 1: PROXY MANAGER -->
+            <div class="tab-pane" id="pane-1">
+                <div class="grid-2">
+                    <div class="panel">
+                        <div class="panel-title">THÊM NODE MỚI</div>
+                        <div class="grid-2">
+                            <div class="form-group"><label>Protocol</label><select id="pType"><option value="ss">Shadowsocks</option><option value="vmess">VMess</option><option value="vless">VLESS</option><option value="trojan">Trojan</option><option value="http">HTTP</option><option value="socks5">SOCKS5</option></select></div>
+                            <div class="form-group"><label>Tên Node</label><input type="text" id="pName" placeholder="VD: Node_1"></div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group"><label>Server IP/Domain</label><input type="text" id="pAddress" placeholder="1.2.3.4"></div>
+                            <div class="form-group"><label>Port</label><input type="text" id="pPort" placeholder="443"></div>
+                        </div>
+                        <div class="form-group"><label>Password / UUID</label><input type="text" id="pPass" placeholder="Nhập mật khẩu/UUID"></div>
+                        <button class="btn btn-accent" style="width: 100%;" onclick="addProxyManual()">Khởi Tạo Node</button>
+                        
+                        <div style="margin-top: 20px;">
+                            <label>Import Hàng Loạt (ss://, vmess://)</label>
+                            <textarea id="bulkInput" rows="3" placeholder="Dán link vào đây..."></textarea>
+                            <button class="btn" style="width: 100%; margin-top: 10px;" onclick="importBulk()">Tải Lên Hàng Loạt</button>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-title">DANH SÁCH NODES <button class="btn" style="padding: 5px 10px; font-size: 11px;" onclick="clearAllNodes()">Xóa Hết</button></div>
+                        <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                            <table>
+                                <thead><tr><th>Tag</th><th>Protocol</th><th>Server</th><th>Hành động</th></tr></thead>
+                                <tbody id="proxyTableBody"></tbody>
+                            </table>
+                            <div id="emptyState" style="text-align: center; padding: 20px; color: #555; font-style: italic;">Chưa có dữ liệu.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE 2: ADVANCED -->
+            <div class="tab-pane" id="pane-2">
+                <div class="grid-2">
+                    <div class="panel">
+                        <div class="panel-title">BỘ LỌC BẢO MẬT</div>
+                        <div class="toggle-group"><span>Chặn Quảng Cáo Web</span><label class="switch"><input type="checkbox" id="rAd" checked><span class="slider"></span></label></div>
+                        <div class="toggle-group"><span>Chặn Theo Dõi (Tracking)</span><label class="switch"><input type="checkbox" id="rTrack" checked><span class="slider"></span></label></div>
+                        <div class="toggle-group"><span>Bỏ qua mạng LAN</span><label class="switch"><input type="checkbox" id="rLan" checked><span class="slider"></span></label></div>
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label>Custom Rules (Mỗi dòng 1 rule)</label>
+                            <textarea id="customRules" rows="4" placeholder="DOMAIN-SUFFIX,example.com,DIRECT"></textarea>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-title">DNS & CÂN BẰNG TẢI</div>
+                        <div class="form-group"><label>Chế độ Load Balance</label><select id="optBalance"><option value="url-test">URL-Test (Tự động)</option><option value="fallback">Fallback (Dự phòng)</option><option value="manual">Manual (Thủ công)</option></select></div>
+                        <div class="form-group"><label>DNS Server</label><input type="text" id="dnsServer" value="system, 8.8.8.8, 1.1.1.1"></div>
+                        <div class="form-group"><label>DNS over HTTPS (DoH)</label><select id="dnsDoh"><option value="">Không sử dụng</option><option value="https://cloudflare-dns.com/dns-query">Cloudflare DoH</option><option value="https://dns.google/dns-query">Google DoH</option></select></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE 3: TEMPLATES -->
+            <div class="tab-pane" id="pane-3">
+                <div class="panel">
+                    <div class="panel-title">THƯ VIỆN MẪU CẤU HÌNH</div>
+                    <div class="game-grid" id="templateGrid" style="grid-template-columns: 1fr 1fr;"></div>
+                </div>
+            </div>
+
+            <!-- PANE 4: EDITOR -->
+            <div class="tab-pane" id="pane-4">
+                <div class="panel" style="padding: 0; background: transparent; border: none;">
+                    <div class="editor-container">
+                        <div class="editor-header">
+                            <span style="color: var(--neon-blue); font-family: 'Orbitron'; font-size: 13px;">SHADOWROCKET.CONF</span>
+                            <div>
+                                <button class="btn" style="padding: 5px 15px; font-size: 12px;" onclick="copyEditorCode()">Copy</button>
+                                <button class="btn btn-accent" style="padding: 5px 15px; font-size: 12px;" onclick="downloadEditorCode()">Tải Xuống</button>
+                            </div>
+                        </div>
+                        <div class="editor-body">
+                            <div class="line-numbers" id="lineNumbers">1</div>
+                            <textarea id="liveEditor" class="code-editor" spellcheck="false" placeholder="# Nhấn 'Tạo Cấu Hình' để tạo mã..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EDIT -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <h3>UPDATE NODE CONFIG</h3>
+        <input type="hidden" id="editIndex">
+        <div class="form-group"><label>Tên Node</label><input type="text" id="editName"></div>
+        <div class="form-group"><label>Server</label><input type="text" id="editAddress"></div>
+        <div class="form-group"><label>Port</label><input type="text" id="editPort"></div>
+        <div class="form-group"><label>Password / UUID</label><input type="text" id="editPass"></div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn btn-accent" style="flex:1;" onclick="saveEditProxy()">Lưu Thay Đổi</button>
+            <button class="btn" style="flex:1;" onclick="closeModal()">Hủy</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast">Thành công!</div>
+
+<script>
+    // ================= DATA =================
+    const pageTitles = ["GAME OPTIMIZATION", "PROXY MANAGER", "ADVANCED ROUTING", "TEMPLATE LIBRARY", "CODE EDITOR"];
+    
+    const lightTemplates = [
+        { name: "1. Chặn Quảng Cáo", desc: "Không cần Proxy. Chặn QC web & SDK.", code: `[General]\nbypass-system = true\ndns-server = system, 8.8.8.8\n[Rule]\nDOMAIN-SUFFIX,doubleclick.net,REJECT\nDOMAIN-SUFFIX,applovin.com,REJECT\nFINAL,DIRECT` },
+        { name: "2. Tối Ưu Game", desc: "Cần Proxy. Bỏ qua Proxy cho server game.", code: `[General]\nbypass-system = true\n[Proxy]\n# Điền Proxy của bạn\n[Rule]\nDOMAIN-SUFFIX,garena.com,DIRECT\nDOMAIN-SUFFIX,tencent.com,DIRECT\nFINAL,Proxy_Game` }
+    ];
+
+    const gameList = [
+        { id: 'freefire', name: 'Free Fire', domains: ['garena.com', 'garenanow.com', 'freefiremobile.com'], desc: 'Giảm Ping' },
+        { id: 'pubg', name: 'PUBG Mobile', domains: ['pubgmobile.com', 'tencent.com'], desc: 'Chống Lag' },
+        { id: 'lienquan', name: 'Liên Quân', domains: ['garena.com', 'lienquan.garena.vn'], desc: 'Ổn Định' },
+        { id: 'codm', name: 'Call of Duty', domains: ['callofduty.com', 'activision.com'], desc: 'Tối Ưu' }
+    ];
+
+    let selectedGames = JSON.parse(localStorage.getItem('cyber_selected_games')) || ['freefire'];
+    let proxies = JSON.parse(localStorage.getItem('cyber_proxies')) || [];
+    let currentSettings = JSON.parse(localStorage.getItem('cyber_settings')) || { rAd: true, rTrack: true, rLan: true, optBalance: 'url-test', dnsServer: 'system, 8.8.8.8, 1.1.1.1', dnsDoh: '', customRules: '' };
+
+    // ================= INIT =================
+    function init() {
+        renderGames();
+        renderTemplates();
+        renderProxyTable();
+        loadSettings();
+        updateGauges();
+        simulatePing();
+        
+        const editor = document.getElementById('liveEditor');
+        editor.addEventListener('input', updateLineNumbers);
+        editor.addEventListener('scroll', () => {
+            document.getElementById('lineNumbers').scrollTop = editor.scrollTop;
+        });
+    }
+
+    function updateGauges() {
+        document.getElementById('gaugeNodes').innerText = proxies.length;
+        document.getElementById('gaugeGames').innerText = selectedGames.length;
+    }
+
+    function simulatePing() {
+        setInterval(() => {
+            const ping = Math.floor(Math.random() * 30) + 10;
+            document.getElementById('gaugePing').innerText = ping;
+        }, 2000);
+    }
+
+    // ================= UI LOGIC =================
+    function switchTab(index, el) {
+        document.querySelectorAll('.tab-pane').forEach((pane, i) => pane.classList.toggle('active', i === index));
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        if(el) el.classList.add('active');
+        document.getElementById('page-title').innerText = pageTitles[index];
+        
+        // Cuộn lên đầu trang khi chuyển tab (Mobile UX)
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderGames() {
+        const grid = document.getElementById('gameGrid');
+        grid.innerHTML = gameList.map(game => {
+            const isSelected = selectedGames.includes(game.id);
+            return `
+                <div class="game-card ${isSelected ? 'selected' : ''}" onclick="toggleGame('${game.id}')">
+                    <h4>${game.name}</h4>
+                    <div class="status">${isSelected ? '[ ON ]' : '[ OFF ]'}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function toggleGame(gameId) {
+        if (selectedGames.includes(gameId)) selectedGames = selectedGames.filter(id => id !== gameId);
+        else selectedGames.push(gameId);
+        localStorage.setItem('cyber_selected_games', JSON.stringify(selectedGames));
+        renderGames();
+        updateGauges();
+    }
+
+    function renderTemplates() {
+        const grid = document.getElementById('templateGrid');
+        grid.innerHTML = lightTemplates.map((t, index) => `
+            <div class="panel" style="border-color: rgba(157, 0, 255, 0.3); padding: 15px;">
+                <h4 style="color: var(--neon-pink); margin-bottom: 10px; font-size: 14px;">${t.name}</h4>
+                <p style="font-size: 12px; color: #888; margin-bottom: 15px;">${t.desc}</p>
+                <div style="background: #000; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 11px; color: var(--success); height: 80px; overflow-y: auto; border: 1px solid rgba(0,255,136,0.2); white-space: pre-wrap; margin-bottom: 15px;">${t.code}</div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn" style="flex: 1; padding: 8px; font-size: 11px;" onclick="downloadTemplate(${index})">Tải</button>
+                    <button class="btn btn-accent" style="flex: 1; padding: 8px; font-size: 11px;" onclick="loadTemplateToEditor(${index})">Sửa</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // ================= PROXY MANAGER =================
+    function saveData() {
+        localStorage.setItem('cyber_proxies', JSON.stringify(proxies));
+        updateGauges();
+    }
+
+    function renderProxyTable() {
+        const tbody = document.getElementById('proxyTableBody');
+        const emptyState = document.getElementById('emptyState');
+        if (proxies.length === 0) { tbody.innerHTML = ''; emptyState.style.display = 'block'; return; }
+        emptyState.style.display = 'none';
+        tbody.innerHTML = proxies.map((p, index) => `
+            <tr>
+                <td style="color: #fff;">${p.name}</td>
+                <td><span class="tag">${p.type.toUpperCase()}</span></td>
+                <td>${p.address}:${p.port}</td>
+                <td>
+                    <button class="btn" style="padding: 4px 8px; font-size: 10px;" onclick="openEditModal(${index})">Sửa</button>
+                    <button class="btn btn-accent" style="padding: 4px 8px; font-size: 10px;" onclick="deleteProxy(${index})">Xóa</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function addProxyManual() {
+        const type = document.getElementById('pType').value;
+        const name = document.getElementById('pName').value.trim();
+        const address = document.getElementById('pAddress').value.trim();
+        const port = document.getElementById('pPort').value.trim();
+        const pass = document.getElementById('pPass').value.trim();
+        if (!name || !address || !port) { alert('Nhập thiếu thông tin!'); return; }
+
+        proxies.push({ type, name, address, port, pass });
+        saveData(); renderProxyTable();
+        document.getElementById('pName').value = ''; document.getElementById('pAddress').value = ''; document.getElementById('pPort').value = ''; document.getElementById('pPass').value = '';
+        showToast('Đã thêm Node!');
+    }
+
+    function deleteProxy(index) {
+        if (confirm('Xóa Node này?')) {
+            proxies.splice(index, 1); saveData(); renderProxyTable();
+        }
+    }
+
+    function clearAllNodes() {
+        if (confirm('XÓA TẤT CẢ NODE?')) {
+            proxies = []; saveData(); renderProxyTable();
+        }
+    }
+
+    function openEditModal(index) {
+        const p = proxies[index];
+        document.getElementById('editIndex').value = index;
+        document.getElementById('editName').value = p.name;
+        document.getElementById('editAddress').value = p.address;
+        document.getElementById('editPort').value = p.port;
+        document.getElementById('editPass').value = p.pass;
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+
+    function saveEditProxy() {
+        const index = document.getElementById('editIndex').value;
+        proxies[index].name = document.getElementById('editName').value.trim();
+        proxies[index].address = document.getElementById('editAddress').value.trim();
+        proxies[index].port = document.getElementById('editPort').value.trim();
+        proxies[index].pass = document.getElementById('editPass').value.trim();
+        saveData(); renderProxyTable(); closeModal();
+    }
+
+    function importBulk() {
+        const input = document.getElementById('bulkInput').value.trim();
+        if (!input) return;
+        const lines = input.split('\n');
+        let added = 0, dup = 0;
+        lines.forEach(line => {
+            line = line.trim(); if (!line) return;
+            let parsed = null;
+            try {
+                if (line.startsWith('ss://')) {
+                    const base64Part = line.split('@')[0].replace('ss://', '');
+                    const decoded = atob(base64Part);
+                    const [method, pass] = decoded.split(':');
+                    const [host, port] = line.split('@')[1].split(':');
+                    parsed = { type: 'ss', name: `SS_${host}`, address: host, port: port, pass: pass, method: method };
+                } else if (line.startsWith('vmess://')) {
+                    const obj = JSON.parse(atob(line.replace('vmess://', '')));
+                    parsed = { type: 'vmess', name: obj.ps || `VMESS_${obj.add}`, address: obj.add, port: obj.port, pass: obj.id };
+                } else if (line.startsWith('trojan://')) {
+                    const url = new URL(line);
+                    parsed = { type: 'trojan', name: url.hash ? decodeURIComponent(url.hash.substring(1)) : `TROJAN_${url.hostname}`, address: url.hostname, port: url.port, pass: url.username };
+                }
+                if (parsed) {
+                    if (proxies.some(p => p.address === parsed.address && p.port === parsed.port)) dup++;
+                    else { proxies.push(parsed); added++; }
+                }
+            } catch (e) {}
+        });
+        saveData(); renderProxyTable();
+        document.getElementById('bulkInput').value = '';
+        alert(`Đã thêm: ${added} | Bỏ qua: ${dup}`);
+    }
+
+    // ================= GENERATE & EDITOR =================
+    function generateAndEditConfig() {
+        const gUdp = document.getElementById('gUdp').checked;
+        const gTfo = document.getElementById('gTfo').checked;
+        const gDirect = document.getElementById('gDirect').checked;
+        const gAdSdk = document.getElementById('gAdSdk').checked;
+
+        let conf = `# Shadowrocket VIP PRO\n# Generated: ${new Date().toLocaleString()}\n\n`;
+
+        conf += `[General]\nbypass-system = true\n`;
+        conf += `dns-server = ${currentSettings.dnsServer}\n`;
+        if (currentSettings.dnsDoh) conf += `doh-server = ${currentSettings.dnsDoh}\n`;
+        if (currentSettings.rLan) conf += `skip-proxy = 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12, localhost\n`;
+        if (gTfo) conf += `tcp-fast-open = true\n`;
+        conf += `\n`;
+
+        conf += `[Proxy]\n`;
+        if (proxies.length > 0) {
+            proxies.forEach(p => {
+                let line = `${p.name} = `;
+                if (p.type === 'ss') line += `ss, ${p.address}, ${p.port}, encrypt-method=${p.method || 'aes-256-gcm'}, password=${p.pass}`;
+                else if (p.type === 'vmess') line += `vmess, ${p.address}, ${p.port}, username=${p.pass}, tls=true, ws=true, ws-path=/`;
+                else if (p.type === 'vless') line += `vless, ${p.address}, ${p.port}, username=${p.pass}, tls=true, ws=true, ws-path=/`;
+                else if (p.type === 'trojan') line += `trojan, ${p.address}, ${p.port}, password=${p.pass}, tls=true`;
+                if (gUdp && p.type !== 'http') line += `, udp-relay=true`;
+                conf += line + `\n`;
+            });
+            conf += `\n[Proxy Group]\n`;
+            const names = proxies.map(p => p.name).join(', ');
+            conf += `AutoSelect = url-test, ${names}, url=http://www.gstatic.com/generate_204, interval=300\n`;
+        } else {
+            conf += `# No Proxy Configured\n`;
+        }
+        conf += `\n`;
+
+        conf += `[Rule]\n`;
+        if (gAdSdk) conf += `# Game Ads SDK\nDOMAIN-SUFFIX,unityads.unity3d.com,REJECT\nDOMAIN-SUFFIX,applovin.com,REJECT\n`;
+        if (selectedGames.length > 0) {
+            conf += `\n# Game Optimization\n`;
+            selectedGames.forEach(gameId => {
+                const game = gameList.find(g => g.id === gameId);
+                if (game) {
+                    conf += `# ${game.name}\n`;
+                    game.domains.forEach(domain => { conf += `DOMAIN-SUFFIX,${domain},${gDirect ? 'DIRECT' : 'AutoSelect'}\n`; });
+                }
+            });
+        }
+        if (currentSettings.rAd) conf += `\n# Web Adblock\nDOMAIN-SUFFIX,doubleclick.net,REJECT\nDOMAIN-SUFFIX,googleadservices.com,REJECT\n`;
+        if (currentSettings.rTrack) conf += `DOMAIN-SUFFIX,analytics.google.com,REJECT\n`;
+        if (currentSettings.customRules) conf += `\n# Custom Rules\n${currentSettings.customRules}\n`;
+        
+        conf += `\nFINAL,${proxies.length > 0 ? 'AutoSelect' : 'DIRECT'},dns-failed\n`;
+
+        document.getElementById('liveEditor').value = conf;
+        updateLineNumbers();
+        switchTab(4, document.querySelectorAll('.nav-item')[4]);
+        showToast('Đã tạo mã cấu hình!');
+    }
+
+    function updateLineNumbers() {
+        const editor = document.getElementById('liveEditor');
+        const lines = editor.value.split('\n').length;
+        let numbers = '';
+        for (let i = 1; i <= lines; i++) { numbers += i + '<br>'; }
+        document.getElementById('lineNumbers').innerHTML = numbers;
+    }
+
+    function copyEditorCode() {
+        const code = document.getElementById('liveEditor').value;
+        if (!code) return;
+        navigator.clipboard.writeText(code).then(() => {
+            showToast('Đã copy mã!');
+        });
+    }
+
+    function downloadEditorCode() {
+        const code = document.getElementById('liveEditor').value;
+        if (!code) return;
+        const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'Shadowrocket_VIP.conf';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Đã tải file .conf!');
+    }
+
+    function downloadTemplate(index) {
+        const t = lightTemplates[index];
+        const blob = new Blob([t.code], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `Template_${index+1}.conf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Đã tải mẫu!');
+    }
+
+    function loadTemplateToEditor(index) {
+        document.getElementById('liveEditor').value = lightTemplates[index].code;
+        updateLineNumbers();
+        switchTab(4, document.querySelectorAll('.nav-item')[4]);
+    }
+
+    // ================= UTILS =================
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg; toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    init();
+</script>
+</body>
+</html>
